@@ -172,6 +172,7 @@ def _addLabel(im, label, fs=8, fc=None, fontpath=__FONTPATH__, top=True):
 
 def stackImageSeries(idmap, outbase, geometry, postfix='', imdir='images/', labelsordered=None, fontsize=20, scale=1,
                      bcolor=(255, 255, 255),fcolor=(0, 0, 0), fontpath=__FONTPATH__, imdist=0, ncores=1, title=None, border=False):
+    print imdir+idmap.keys()[0]+'/'+idmap.keys()[0]+postfix+'*.png'
     tlist = map(lambda s: s.split('_')[-1].replace('.png',''),glob.glob(imdir+idmap.keys()[0]+'/'+idmap.keys()[0]+postfix+'*.png'))
     imname = lambda simid,t: imdir+simid+'/'+simid+postfix+'_'+t+'.png'
     jobs = []
