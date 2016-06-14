@@ -1,5 +1,5 @@
 __author__ = 'mpalm'
-import os,math,glob
+import os,math,glob,csv
 from multiprocessing import Pool
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
@@ -275,6 +275,7 @@ def morphImageSeries(idmap, outbase, postfix='', imdir='images/', xlabel=None, y
 
     
     tlist = map(lambda s: s.split('_')[-1].replace('.png',''),glob.glob(imdir+idmap[0][0]+'/'+idmap[0][0]+postfix+'*.png'))
+    print imdir+idmap[0][0]+'/'+idmap[0][0]+postfix+'*.png'
     imname = lambda simid,t: imdir+simid+'/'+simid+postfix+'_'+t+'.png'
     jobs = []
     for t in tlist:        
@@ -418,7 +419,7 @@ def morphImages(images, filename, xlabel=None, ylabel=None, xtics=None, ytics=No
                 tdraw.text((0, 0), p, fill=fcolor, font=ticsfont)
                 x0p = x0 + n * tsize[1]
                 #~ draw.text((x0p,y0),str(p),fill=fcolor,font=ticsfont)
-                tim = tim.rotate(90)
+                tim = tim.rotate(90,expand=True)
                 y0p = y0 - int(tsize[0] / 2.0)
                 im.paste(tim, (x0p, y0p))
                 #~ tdraw.text((0,0),str(ytics[i]),fill=fcolor,font=ticsfont)
@@ -433,7 +434,7 @@ def morphImages(images, filename, xlabel=None, ylabel=None, xtics=None, ytics=No
         tim = Image.new('RGBA', (tsize[0], tsize[1]), bcolor)
         tdraw = ImageDraw.Draw(tim)
         tdraw.text((0, 0), str(ylabel), fill=fcolor, font=font)
-        tim = tim.rotate(90)
+        tim = tim.rotate(90,expand=True)
         im.paste(tim, (0, int(im.size[1] / 2.0 - tsize[0])))
     if title is not None:
         tsize = draw.textsize(str(title), font=tfont)
