@@ -6,7 +6,7 @@ import numpy as np
 
 __FONTPATH__ = '/usr/share/fonts/truetype/freefont/FreeSans.ttf'
 
-def readColormap(fn):
+def readColorMap(fn):
     """ Read colormap from tab seperated file.
 
     Returns:
@@ -17,7 +17,8 @@ def readColormap(fn):
     return {int(row[0]) : tuple(float(row[i]) for i in range(1,4)) for row in reader}
 
 
-def addColorBar(imname,cmfile,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,255,255),fontpath=__FONTPATH__,fontsize=24,outname=None):
+def addColorBar(imname,cmfile,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,255,255),fontpath=__FONTPATH__,
+                fontsize=24,outname=None,horizontal=False,title=None):
     """ Add colorbar to an image
 
     Args:
@@ -32,16 +33,20 @@ def addColorBar(imname,cmfile,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,255
       fontsize: font size
       outname: name of the new image
     """
-    
+
     im = Image.open(imname)
     cm = readColorMap(cmfile)
-    im = _addColorBarVertical(im,cm,w,h,labels,fontcolor,bgcolor,fontpath,fontsize)
+    if horizontal:
+        im = _addColorBarHorizontal(im,cm,w,h,labels,fontcolor,bgcolor,fontpath,fontsize,title)
+    else:
+        im = _addColorBarVertical(im,cm,w,h,labels,fontcolor,bgcolor,fontpath,fontsize)
     if outname is None:
         im.save(imname)
     else:
         im.save(outname)
 
-def _addColorBarVertical(im,cm,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,255,255),fontpath=__FONTPATH__,fontsize=24):
+def _addColorBarVertical(im,cm,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,255,255),
+                         fontpath=__FONTPATH__,fontsize=24):
     if labels is not None:
         font = ImageFont.truetype(fontpath, fontsize)
         lablen = [len(label) for label in labels]
@@ -54,22 +59,66 @@ def _addColorBarVertical(im,cm,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,25
     nx = int(math.ceil(w))
     ny = int(math.ceil(h))
     newim = Image.new('RGB',(nx,ny),bgcolor)
-    # make vertical colorbar
     dh = h/float(len(cm))
     draw = ImageDraw.Draw(newim)
     y0 = ny-(ny-h)/2.
     for idx,c in cm.iteritems():
-        color = tuple(int(255*c[i]) for i in [0,1,2])        
-        draw.rectangle([(0,y0-i*dh),(w,y0-(i+1)*dh)],fill=color,outline=color)
+        color = tuple(int(255*c[i]) for i in [0,1,2])
+        draw.rectangle([(0,y0-idx*dh),(w,y0-(idx+1)*dh)],fill=color,outline=color)
     if labels is not None:
         x = w+0.1*tsize[0]
         for i,label in enumerate(labels):
             y = y0-.5*tsize[1]-h*i/float(len(labels)-1)
             draw.text((x,y),str(label),fill=fontcolor,font=font)
-    im.paste(newim,(im.size[0]-nx,0))
+    im.paste(newim,((im.size[0]-nx)-nx/2,(im.size[1]-ny)/2))
     return im
-    
-    
+
+
+def _addColorBarHorizontal(im,cm,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,255,255),
+                         fontpath=__FONTPATH__,fontsize=24,title=None):
+    nx = int(math.ceil(w))
+    ny = int(math.ceil(h))
+    oy = 0
+    if labels is not None:
+        font = ImageFont.truetype(fontpath, fontsize)
+        lablen_left = len(labels[0])
+        lablen_right = len(labels[-1])
+        temp = Image.new('RGB', (10, 10))
+        draw = ImageDraw.Draw(temp)
+        if lablen_right > lablen_left:
+            tsize = draw.textsize(str(labels[-1]), font=font)
+        else:
+            tsize = draw.textsize(str(labels[0]), font=font)
+        h = h-tsize[1]
+        w = w-tsize[0]
+        oy = tsize[1]
+    if title is not None:
+        font = ImageFont.truetype(fontpath, fontsize)
+        temp = Image.new('RGB', (10, 10))
+        draw = ImageDraw.Draw(temp)
+        tsize = draw.textsize(str(title), font=font)
+        h = h-tsize[1]
+    newim = Image.new('RGB',(nx,ny),bgcolor)
+    dw = w/float(len(cm))
+    draw = ImageDraw.Draw(newim)
+    x0 = (nx-w)/2.
+    for idx,c in cm.iteritems():
+        color = tuple(int(255*c[i]) for i in [0,1,2])
+        draw.rectangle([(x0+idx*dw,oy),(x0+(idx+1)*dw,oy+h)],fill=color,outline=color)
+    if labels is not None:
+        y = 0-0.1*tsize[1]
+        for i,label in enumerate(labels):
+            tsize = draw.textsize(str(label), font=font)
+            x = x0-.5*tsize[0]+w*i/float(len(labels)-1)
+            draw.text((x,y),str(label),fill=fontcolor,font=font)
+    if title is not None:
+        tsize = draw.textsize(str(title), font=font)
+        y = oy+h
+        x = .5*(nx-tsize[0])
+        draw.text((x, y), str(title), fill=fontcolor, font=font)
+    im.paste(newim,((im.size[0]-nx)/2,(im.size[1]-ny)-ny/2))
+    return im
+
 
 def _addMPLColorBarVertical(im,cm,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,255,255),fontpath=__FONTPATH__):
     # create new image and paste original image on the left side
@@ -144,6 +193,13 @@ def _addTimeStamp(im, stamp, fs=6, fc=None, fontpath=__FONTPATH__):
     x = nx - (w + .5 * h)
     draw.text((x, y), str(stamp), fill=fc, font=font)
 
+def _getLabelSize(label, fs=8, fontpath=__FONTPATH__):
+    im = Image.new('RGB', (10, 10))
+    draw = ImageDraw.Draw(im)
+    fontsize = int(fs)
+    font = ImageFont.truetype(fontpath, fontsize)
+    return draw.textsize(str(label), font=font)
+
 def _addLabel(im, label, fs=8, fc=None, fontpath=__FONTPATH__, top=True):
     """ Draw label at the top center of the image.
 
@@ -159,28 +215,31 @@ def _addLabel(im, label, fs=8, fc=None, fontpath=__FONTPATH__, top=True):
     draw = ImageDraw.Draw(im)
     fontsize = int(fs)
     font = ImageFont.truetype(fontpath, fontsize)
-    (w, h) = draw.textsize(str(label), font=font)
+    (w, h) = _getLabelSize(label, fs, fontpath)
     (nx, ny) = im.size
     if top:
         y = int(.5 * h)
     else:
-        y = int(nx - 1.5 * h)
+        y = int(ny - 1.5 * h)
     x = int(0.5 * (nx - w))
-    
+
     draw.text((x, y), str(label), fill=fc, font=font)
 
 
 def stackImageSeries(idmap, outbase, geometry, postfix='', imdir='images/', labelsordered=None, fontsize=20, scale=1,
-                     bcolor=(255, 255, 255),fcolor=(0, 0, 0), fontpath=__FONTPATH__, imdist=0, ncores=1, title=None, border=False):
-    print imdir+idmap.keys()[0]+'/'+idmap.keys()[0]+postfix+'*.png'
-    tlist = map(lambda s: s.split('_')[-1].replace('.png',''),glob.glob(imdir+idmap.keys()[0]+'/'+idmap.keys()[0]+postfix+'*.png'))
+                     bcolor=(255, 255, 255),fcolor=(0, 0, 0), fontpath=__FONTPATH__, imdist=0, ncores=1, title=None,
+                     border=False, imbases=None):
+    #print '{}/{}/*.png'.format(imdir,idmap.ke)
+    tlist = map(lambda s: s.split('_')[-1].replace('.png',''),glob.glob('{}/{}/*.png'.format(imdir,idmap.keys()[0])))
     imname = lambda simid,t: imdir+simid+'/'+simid+postfix+'_'+t+'.png'
+    if imbases is None:
+        imbases = {k : k for k in idmap}
     jobs = []
     for t in tlist:
         imdict = {name : imname(simid,t) for simid,name in idmap.iteritems()}
         jobs.append([imdict,geometry,outbase+postfix+'_'+t+'.png',True,title,fontsize,border,scale,
                      bcolor,fcolor,fontpath,labelsordered,imdist])
-        
+
     if ncores == 1:
         for job in jobs:
             stackImagesMC(job)
@@ -191,7 +250,7 @@ def stackImageSeries(idmap, outbase, geometry, postfix='', imdir='images/', labe
 
 def stackImagesMC(args):
     [images,geometry,filename,label,title,fontsize,border,scale,bcolor,fcolor,fontpath,labelsordered,imdist] = args
-    stackImages(images,geometry,filename,label,title,fontsize,border,scale,bcolor,fcolor,fontpath,labelsordered,imdist)    
+    stackImages(images,geometry,filename,label,title,fontsize,border,scale,bcolor,fcolor,fontpath,labelsordered,imdist)
 
 def stackImages(images, geometry, filename, label=False, title=None, fontsize=20, border=False, scale=1,
                 bcolor=None, fcolor=(0, 0, 0),fontpath=__FONTPATH__, labelsordered=None,imdist=0):
@@ -252,12 +311,20 @@ def stackImages(images, geometry, filename, label=False, title=None, fontsize=20
         x0 = int(i % geometry[0] * imsize[0] + offsetX)
         y0 = int((i / geometry[0]) * imsize[1] + offsetY)
         if os.path.isfile(images[l]):
-            newim = Image.open(images[l])
-            if newim.mode == 'L':
-                newim = newim.convert('RGB')
+            importim = Image.open(images[l])
+            if importim.mode == 'L':
+                importim = importim.convert('RGB')
             if label:
-                _addLabel(newim, labels[i], fs=fontsize, top=True, fc=fcolor)
-            im.paste(newim.resize((int(nx * scale), int(ny * scale))), (x0, y0))
+                (w, h) = _getLabelSize(labels[i], fontsize)
+                subim = Image.new('RGBA', (int(nx * scale), int(ny * scale)+h), bcolor)
+                subim.paste(importim.resize((int(nx * scale), int(ny * scale))), (0, 0))
+                _addLabel(subim, labels[i], fs=fontsize, top=False, fc=fcolor)
+                im.paste(subim, (x0, y0))
+            else:
+                im.paste(importim.resize((int(nx * scale), int(ny * scale))), (x0, y0))
+                #subim = Image.new('RGBA', (int(nx * scale), int(ny * scale))), bcolor)
+            #if label:
+            #im.paste(newim.resize((int(nx * scale), int(ny * scale))), (x0, y0))
         if border:
             draw.rectangle([(x0, y0), (x0 + int(nx * scale), y0 + int(ny * scale))], outline=fcolor)
     if not (title is None):
@@ -272,13 +339,11 @@ def stackImages(images, geometry, filename, label=False, title=None, fontsize=20
 
 def morphImageSeries(idmap, outbase, postfix='', imdir='images/', xlabel=None, ylabel=None, xtics=None, ytics=None, fontsize=20, scale=1, border=False,
                 title=None, bcolor=(255, 255, 255),fcolor=(0, 0, 0), fontpath=__FONTPATH__, delta=0, ncores=1, cropsize=None):
-
-    
+    #print imdir+idmap[0][0]+'/'+idmap[0][0]+postfix+'*.png'
     tlist = map(lambda s: s.split('_')[-1].replace('.png',''),glob.glob(imdir+idmap[0][0]+'/'+idmap[0][0]+postfix+'*.png'))
-    print imdir+idmap[0][0]+'/'+idmap[0][0]+postfix+'*.png'
     imname = lambda simid,t: imdir+simid+'/'+simid+postfix+'_'+t+'.png'
     jobs = []
-    for t in tlist:        
+    for t in tlist:
         imarray = [[imname(simid,t) for simid in row] for row in idmap]
         jobs.append([imarray,outbase+postfix+'_'+t+'.png',xlabel,ylabel,xtics,ytics,fontsize,scale,border,title,bcolor,fcolor,
                      fontpath,delta,cropsize])
@@ -288,12 +353,12 @@ def morphImageSeries(idmap, outbase, postfix='', imdir='images/', xlabel=None, y
     else:
         pool = Pool(processes=ncores)
         pool.map(morphImagesMC,jobs)
-        
+
 
 def morphImagesMC(args):
     [images,filename,xlabel,ylabel,xtics,ytics,fontsize,scale,border,title,bgcolor,fcolor,fontpath,delta,cropsize] = args
     morphImages(images,filename,xlabel,ylabel,xtics,ytics,fontsize,scale,border,title,bgcolor,fcolor,fontpath,delta,cropsize)
-    
+
 def morphImages(images, filename, xlabel=None, ylabel=None, xtics=None, ytics=None, fontsize=20, scale=1, border=False,
                 title=None, bcolor=(255, 255, 255), fcolor=(0, 0, 0), fontpath=__FONTPATH__, delta=0, cropsize=None):
     """ Stack a set of images together in one morphospace.
@@ -321,14 +386,14 @@ def morphImages(images, filename, xlabel=None, ylabel=None, xtics=None, ytics=No
     if i == len(imlist):
         print 'none of the images exists'
         return
-    orgsize = Image.open(imlist[i]).size    
+    orgsize = Image.open(imlist[i]).size
     if cropsize is None:
         subimsize = (int(scale * orgsize[0] + delta), int(scale * orgsize[1] + delta))
     else:
         dx = (orgsize[0]-cropsize[0])/2
         dy = (orgsize[1]-cropsize[1])/2
         box = (dx,dy,orgsize[0]-dx,orgsize[1]-dy)
-        subimsize = (int(scale * cropsize[0] + delta), int(scale * cropsize[1] + delta))    
+        subimsize = (int(scale * cropsize[0] + delta), int(scale * cropsize[1] + delta))
     imsize = [subimsize[0] * len(images[0]) - delta, subimsize[1] * len(images) - delta]
     oX = 0
     oY = 0
@@ -385,11 +450,11 @@ def morphImages(images, filename, xlabel=None, ylabel=None, xtics=None, ytics=No
             y0 = i * subimsize[1] + oY
             #~ print x0,y0,x0+newim.size[0],y0+newim.size[1]
             if cropsize is not None:
-                newim = newim.crop(box)                
+                newim = newim.crop(box)
                 im.paste(newim.resize((int(scale * cropsize[0]), int(scale * cropsize[1]))), (x0, y0))
             else:
                 im.paste(newim.resize((int(scale * orgsize[0]), int(scale * orgsize[1]))), (x0, y0))
-                
+
             #~ im.paste(newim.resize(subimsize),(x0,y0))
             if border:
                 draw.rectangle([(x0, y0), (x0 + newim.size[0], y0 + newim.size[1])], outline=fcolor)
