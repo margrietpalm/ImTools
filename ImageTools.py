@@ -3,6 +3,7 @@ import os,math,glob,csv
 from multiprocessing import Pool
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
+import itertools
 
 __FONTPATH__ = '/usr/share/fonts/truetype/freefont/FreeSans.ttf'
 
@@ -340,7 +341,13 @@ def stackImages(images, geometry, filename, label=False, title=None, fontsize=20
 def morphImageSeries(idmap, outbase, postfix='', imdir='images/', xlabel=None, ylabel=None, xtics=None, ytics=None, fontsize=20, scale=1, border=False,
                 title=None, bcolor=(255, 255, 255),fcolor=(0, 0, 0), fontpath=__FONTPATH__, delta=0, ncores=1, cropsize=None):
     #print imdir+idmap[0][0]+'/'+idmap[0][0]+postfix+'*.png'
-    tlist = map(lambda s: s.split('_')[-1].replace('.png',''),glob.glob(imdir+idmap[0][0]+'/'+idmap[0][0]+postfix+'*.png'))
+    tlist = []
+    for imid in list(itertools.chain.from_iterable(idmap)):
+        #_tlist = map(lambda s: s.split('_')[-1].replace('.png',''),glob.glob(imdir+idmap[0][0]+'/'+idmap[0][0]+postfix+'*.png'))
+        _tlist = map(lambda s: s.split('_')[-1].replace('.png',''),glob.glob('{0}{1}/{1}{2}*.png'.format(imdir,imid,postfix)))
+        if len(_tlist) > len(tlist):
+            tlist = _tlist
+    print tlist
     imname = lambda simid,t: imdir+simid+'/'+simid+postfix+'_'+t+'.png'
     jobs = []
     for t in tlist:
