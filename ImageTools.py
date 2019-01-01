@@ -4,6 +4,7 @@ from multiprocessing import Pool
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 import itertools
+import future
 
 __FONTPATH__ = '/usr/share/fonts/truetype/freefont/FreeSans.ttf'
 
@@ -63,7 +64,7 @@ def _addColorBarVertical(im,cm,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,25
     dh = h/float(len(cm))
     draw = ImageDraw.Draw(newim)
     y0 = ny-(ny-h)/2.
-    for idx,c in cm.iteritems():
+    for idx,c in cm.items():
         color = tuple(int(255*c[i]) for i in [0,1,2])
         draw.rectangle([(0,y0-idx*dh),(w,y0-(idx+1)*dh)],fill=color,outline=color)
     if labels is not None:
@@ -103,7 +104,7 @@ def _addColorBarHorizontal(im,cm,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,
     dw = w/float(len(cm))
     draw = ImageDraw.Draw(newim)
     x0 = (nx-w)/2.
-    for idx,c in cm.iteritems():
+    for idx,c in cm.items():
         color = tuple(int(255*c[i]) for i in [0,1,2])
         draw.rectangle([(x0+idx*dw,oy),(x0+(idx+1)*dw,oy+h)],fill=color,outline=color)
     if labels is not None:
@@ -117,7 +118,7 @@ def _addColorBarHorizontal(im,cm,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,
         y = oy+h
         x = .5*(nx-tsize[0])
         draw.text((x, y), str(title), fill=fontcolor, font=font)
-    im.paste(newim,((im.size[0]-nx)/2,(im.size[1]-ny)-ny/2))
+    im.paste(newim,(int((im.size[0]-nx)/2),int((im.size[1]-ny)-ny/2)))
     return im
 
 
@@ -237,7 +238,7 @@ def stackImageSeries(idmap, outbase, geometry, postfix='', imdir='images/', labe
         imbases = {k : k for k in idmap}
     jobs = []
     for t in tlist:
-        imdict = {name : imname(simid,t) for simid,name in idmap.iteritems()}
+        imdict = {name : imname(simid,t) for simid,name in idmap.items()}
         jobs.append([imdict,geometry,outbase+postfix+'_'+t+'.png',True,title,fontsize,border,scale,
                      bcolor,fcolor,fontpath,labelsordered,imdist])
 
@@ -388,7 +389,7 @@ def morphImages(images, filename, xlabel=None, ylabel=None, xtics=None, ytics=No
     while (not os.path.isfile(imlist[i])) and (i <= len(imlist)):
         i += 1
     if i == len(imlist):
-        print 'none of the images exists'
+        print('none of the images exists')
         return
     orgsize = Image.open(imlist[i]).size
     if cropsize is None:
