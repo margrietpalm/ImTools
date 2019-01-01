@@ -39,16 +39,16 @@ def addColorBar(imname,cmfile,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,255
     im = Image.open(imname)
     cm = readColorMap(cmfile)
     if horizontal:
-        im = _addColorBarHorizontal(im,cm,w,h,labels,fontcolor,bgcolor,fontpath,fontsize,title)
+        im = addColorBarHorizontal(im, cm, w, h, labels, fontcolor, bgcolor, fontpath, fontsize, title)
     else:
-        im = _addColorBarVertical(im,cm,w,h,labels,fontcolor,bgcolor,fontpath,fontsize)
+        im = addColorBarVertical(im, cm, w, h, labels, fontcolor, bgcolor, fontpath, fontsize)
     if outname is None:
         im.save(imname)
     else:
         im.save(outname)
 
-def _addColorBarVertical(im,cm,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,255,255),
-                         fontpath=__FONTPATH__,fontsize=24):
+def addColorBarVertical(im, cm, w, h, labels=None, fontcolor=(0, 0, 0), bgcolor=(255, 255, 255),
+                        fontpath=__FONTPATH__, fontsize=24):
     if labels is not None:
         font = ImageFont.truetype(fontpath, fontsize)
         lablen = [len(label) for label in labels]
@@ -76,8 +76,8 @@ def _addColorBarVertical(im,cm,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,25
     return im
 
 
-def _addColorBarHorizontal(im,cm,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,255,255),
-                         fontpath=__FONTPATH__,fontsize=24,title=None):
+def addColorBarHorizontal(im, cm, w, h, labels=None, fontcolor=(0, 0, 0), bgcolor=(255, 255, 255),
+                          fontpath=__FONTPATH__, fontsize=24, title=None):
     nx = int(math.ceil(w))
     ny = int(math.ceil(h))
     oy = 0
@@ -122,7 +122,7 @@ def _addColorBarHorizontal(im,cm,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,
     return im
 
 
-def _addMPLColorBarVertical(im,cm,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255,255,255),fontpath=__FONTPATH__):
+def addMPLColorBarVertical(im, cm, w, h, labels=None, fontcolor=(0, 0, 0), bgcolor=(255, 255, 255), fontpath=__FONTPATH__):
     # create new image and paste original image on the left side
     ny = int(h)
     nx = int(w)
@@ -152,7 +152,7 @@ def _addMPLColorBarVertical(im,cm,w,h,labels=None,fontcolor=(0,0,0),bgcolor=(255
     im.paste(newim,(im.size[0]-nx,0))
     return im
 
-def _makeTransparent(im, bgcolor=(255, 255, 255)):
+def makeTransparent(im, bgcolor=(255, 255, 255)):
     """ Make background transparent
 
     :param im: image
@@ -166,7 +166,7 @@ def _makeTransparent(im, bgcolor=(255, 255, 255)):
     return Image.fromarray(np.uint8(imdata))
 
 
-def _addBox(im, bw, bh, pos, color=None):
+def addBox(im, bw, bh, pos, color=None):
     """ Draw border around image
 
     :param im: image
@@ -182,7 +182,7 @@ def _addBox(im, bw, bh, pos, color=None):
     draw.rectangle([pos, (pos[0] + bw, pos[1] + bh)], outline=color)
 
 
-def _addTimeStamp(im, stamp, fs=6, fc=None, fontpath=__FONTPATH__):
+def addTimeStamp(im, stamp, fs=6, fc=None, fontpath=__FONTPATH__):
 
     if fc is None:
         fc = (0, 0, 0)
@@ -195,14 +195,14 @@ def _addTimeStamp(im, stamp, fs=6, fc=None, fontpath=__FONTPATH__):
     x = nx - (w + .5 * h)
     draw.text((x, y), str(stamp), fill=fc, font=font)
 
-def _getLabelSize(label, fs=8, fontpath=__FONTPATH__):
+def getLabelSize(label, fs=8, fontpath=__FONTPATH__):
     im = Image.new('RGB', (10, 10))
     draw = ImageDraw.Draw(im)
     fontsize = int(fs)
     font = ImageFont.truetype(fontpath, fontsize)
     return draw.textsize(str(label), font=font)
 
-def _addLabel(im, label, fs=8, fc=None, fontpath=__FONTPATH__, top=True):
+def addLabel(im, label, fs=8, fc=None, fontpath=__FONTPATH__, top=True):
     """ Draw label at the top center of the image.
 
     :param im: image
@@ -217,7 +217,7 @@ def _addLabel(im, label, fs=8, fc=None, fontpath=__FONTPATH__, top=True):
     draw = ImageDraw.Draw(im)
     fontsize = int(fs)
     font = ImageFont.truetype(fontpath, fontsize)
-    (w, h) = _getLabelSize(label, fs, fontpath)
+    (w, h) = getLabelSize(label, fs, fontpath)
     (nx, ny) = im.size
     if top:
         y = int(.5 * h)
@@ -317,10 +317,10 @@ def stackImages(images, geometry, filename, label=False, title=None, fontsize=20
             if importim.mode == 'L':
                 importim = importim.convert('RGB')
             if label:
-                (w, h) = _getLabelSize(labels[i], fontsize)
+                (w, h) = getLabelSize(labels[i], fontsize)
                 subim = Image.new('RGBA', (int(nx * scale), int(ny * scale)+h), bcolor)
                 subim.paste(importim.resize((int(nx * scale), int(ny * scale))), (0, 0))
-                _addLabel(subim, labels[i], fs=fontsize, top=False, fc=fcolor)
+                addLabel(subim, labels[i], fs=fontsize, top=False, fc=fcolor)
                 im.paste(subim, (x0, y0))
             else:
                 im.paste(importim.resize((int(nx * scale), int(ny * scale))), (x0, y0))
